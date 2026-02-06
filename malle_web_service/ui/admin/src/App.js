@@ -17,11 +17,9 @@ function App() {
       
       if (data.status === 200) {
         setServerResponse(data);
-        console.log('서버 응답:', data);
       }
     } catch (err) {
       setError('서버 연결 실패: ' + err.message);
-      console.error('에러:', err);
     } finally {
       setLoading(false);
     }
