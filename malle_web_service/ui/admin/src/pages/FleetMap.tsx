@@ -305,8 +305,69 @@ export default function FleetMapPage() {
                   );
                 })}
 
-                {/* Routes: 운행 중인 로봇 → 목적지 POI 점선 */}
-                {layers.routes && robots.filter(r => r.currentTarget && r.status === 'MOVING').map(robot => {
+                {/* Routes: 실제 waypoint 경로 또는 fallback 직선 */}
+                {layers.routes && robots.map(robot => {
+                  // ★ NEW — 서버에서 받은 waypoint 경로가 있으면 polyline으로 표시
+                  if (robot.route && robot.route.length >= 2) {
+                    const points = robot.route.map(wp => {
+                      const { x, y } = toSvgCoord(wp.x, wp.y);
+                      return `${x},${y}`;
+                    }).join(' ');
+                    const robotPos = toSvgCoord(robot.position.x, robot.position.y);
+                    return (
+                      <g key={`route-${robot.id}`}>
+                        {/* 로봇 현재 위치 → 첫 waypoint 연결선 */}
+                        <line
+                          x1={robotPos.x} y1={robotPos.y}
+                          x2={toSvgCoord(robot.route[0].x, robot.route[0].y).x}
+                          y2={toSvgCoord(robot.route[0].x, robot.route[0].y).y}
+                          stroke="hsl(239,84%,67%)"
+                          strokeWidth="1.5"
+                          strokeDasharray="3 3"
+                          opacity="0.5"
+                        />
+                        {/* Waypoint 경로 polyline */}
+                        <polyline
+                          points={points}
+                          fill="none"
+                          stroke="hsl(239,84%,67%)"
+                          strokeWidth="2"
+                          strokeDasharray="6 3"
+                          opacity="0.7"
+                          strokeLinejoin="round"
+                        />
+                        {/* 경유 waypoint 작은 점 */}
+                        {robot.route.slice(0, -1).map((wp, i) => {
+                          const { x, y } = toSvgCoord(wp.x, wp.y);
+                          return (
+                            <circle
+                              key={`rw-${robot.id}-${i}`}
+                              cx={x} cy={y} r="2.5"
+                              fill="hsl(239,84%,67%)"
+                              opacity="0.6"
+                            />
+                          );
+                        })}
+                        {/* 목적지 마커 (마지막 점) */}
+                        {(() => {
+                          const last = robot.route[robot.route.length - 1];
+                          const { x, y } = toSvgCoord(last.x, last.y);
+                          return (
+                            <circle
+                              cx={x} cy={y} r="4"
+                              fill="none"
+                              stroke="hsl(239,84%,67%)"
+                              strokeWidth="2"
+                              opacity="0.8"
+                            />
+                          );
+                        })()}
+                      </g>
+                    );
+                  }
+
+                  // Fallback: 기존 직선 (route 없을 때)
+                  if (!robot.currentTarget || robot.status !== 'MOVING') return null;
                   const targetPoi = pois.find(p => p.name === robot.currentTarget);
                   if (!targetPoi) return null;
                   const from = toSvgCoord(robot.position.x, robot.position.y);
