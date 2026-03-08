@@ -64,6 +64,11 @@ function handleWsMessage(msg: WsMessage, cb: DashboardWsCallbacks) {
       cb.onEventReceived(p);
       break;
 
+    case "ROBOT_ROUTE_UPDATED":
+      if (cb.onRouteUpdated && p.robot_id != null)
+        cb.onRouteUpdated(p.robot_id, (p.route as any[]) ?? []);
+      break;
+
     /* ───── Mission ───── */
 
     case "MISSION_CREATED":
