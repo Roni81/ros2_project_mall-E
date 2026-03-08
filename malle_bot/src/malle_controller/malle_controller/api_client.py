@@ -71,6 +71,18 @@ class ApiClient:
             'battery_pct':  battery_pct,
             'motion_state': motion_state,
         })
+    
+    def report_route(self, robot_id: int, route: list[dict]) -> dict:
+        """PATCH /robots/{id}/route — nav_core BFS 경로 전송"""
+        return self.patch(f'/robots/{robot_id}/route', {
+            'route': route,
+        })
+
+    def clear_route(self, robot_id: int) -> dict:
+        """경로 클리어 (미션 완료/취소 시)"""
+        return self.patch(f'/robots/{robot_id}/route', {
+            'route': [],
+        })    
 
     # ── Guide queue ──────────────────────────────────────────────────────────
 
