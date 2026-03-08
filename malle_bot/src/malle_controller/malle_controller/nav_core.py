@@ -369,6 +369,18 @@ class NavCore:
             f"[NavCore] 경로: {' → '.join(path)} → 최종목적지"
         )
 
+        # ★ NEW — 경로를 malle_service로 전송
+        if self._nav_api and self._nav_robot_id:
+            try:
+                route_coords = [
+                    {"wp_id": wp, "x": self._wp_points[wp]["x"], "y": self._wp_points[wp]["y"]}
+                    for wp in path
+                ]
+                route_coords.append({"wp_id": "_target", "x": target_x, "y": target_y})
+                self._nav_api.report_route(self._nav_robot_id, route_coords)
+            except Exception as e:
+                self._node.get_logger().warn(f"[NavCore] 경로 전송 실패: {e}")        
+
         # 4. 경유 웨이포인트 순차 이동 (마지막 wp는 최종 목적지로 대체)
         for wp_id in path[:-1]:
             if self._nav_abort:
