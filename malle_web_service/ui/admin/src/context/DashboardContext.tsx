@@ -17,6 +17,7 @@ export interface Robot {
   commsStatus: 'STRONG' | 'WEAK' | 'LOST';
   sensorStatus: 'OK' | 'FAULT';
   lockboxSlots: LockboxSlotRes[];
+  route: Array<{ wp_id: string; x: number; y: number }> | null;
 }
 
 export interface Mission {
@@ -203,6 +204,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         commsStatus: r.is_online ? 'STRONG' : 'LOST',
         sensorStatus: 'OK',
         lockboxSlots: [],
+        route: null,
       }));
       setRobots(mapped);
       mapped.forEach((robot) => {
