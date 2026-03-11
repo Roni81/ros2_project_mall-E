@@ -1,8 +1,10 @@
 """Robot management endpoints."""
 
 from datetime import datetime, timezone
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel as PydanticBaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -279,3 +281,41 @@ async def send_command(
     })
 
     return {"ok": True, "robot_id": robot_id, "command": req.command, "bridge_connected": bridge_ok}
+
+
+# ── Route (nav_core waypoint 경로 시각화용) ───────────────────
+
+
+class RouteWaypoint(PydanticBaseModel):
+    wp_id: str
+    x: float
+    y: float
+
+
+class RouteUpdateRequest(PydanticBaseModel):
+    route: list[RouteWaypoint]
+
+
+@router.patch("/robots/{robot_id}/route")
+async def update_robot_route(
+    robot_id: int,
+    req: RouteUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Update planned route (called by nav_core via api_client).
+
+    DB에 저장하지 않고 WS broadcast만 수행 — 실시간 시각화 전용.
+    """
+    robot = await db.get(Robot, robot_id)
+    if not robot:
+        raise HTTPException(status_code=404, detail="Robot not found")
+
+    route_data = [wp.model_dump() for wp in req.route]
+
+    # WS → dashboard only (route visualization)
+    await manager.send_to_dashboard(WsEvent.ROBOT_ROUTE_UPDATED, {
+        "robot_id": robot_id,
+        "route": route_data,
+    })
+
+    return {"ok": True, "robot_id": robot_id, "waypoints": len(route_data)}

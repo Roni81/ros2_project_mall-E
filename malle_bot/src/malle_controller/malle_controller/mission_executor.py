@@ -66,6 +66,9 @@ class MissionExecutor(Node, NavCore):
         self.declare_parameter('api_base_url', 'http://localhost:8000/api/v1')
         api_base_url = self.get_parameter('api_base_url').value
 
+        self.declare_parameter('robot_id', 1)
+        self._robot_id_num = self.get_parameter('robot_id').value
+
         self.state           = RobotState.IDLE
         self.robot_id        = 'malle_01'
         self.battery         = 0.0
@@ -76,7 +79,8 @@ class MissionExecutor(Node, NavCore):
         self._api     = ApiClient(base_url=api_base_url, logger=self.get_logger())
         self._poi_mgr = PoiManager(self._api, logger=self.get_logger())
         self._poi_mgr.load()
-        
+
+        self.nav_core_init(self, robot_id=self._robot_id_num, api=self._api)
 
         self._guide = GuideExecutor(self, self._api, self._poi_mgr)
         # TODO: self._follow = FollowExecutor(...)

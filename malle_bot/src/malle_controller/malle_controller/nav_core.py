@@ -106,9 +106,11 @@ def _load_apriltag_config(yaml_path: str | None = None) -> tuple[dict, tuple, fl
 class NavCore:
     """Nav2 + PID + 웨이포인트 경로 계획 공용 엔진 (Node 믹스인용)."""
 
-    def nav_core_init(self, node: Node, waypoint_yaml: str | None = None):
+    def nav_core_init(self, node: Node, waypoint_yaml: str | None = None, robot_id: int | None = None, api=None):
         """미션 노드의 __init__에서 호출."""
         self._node = node
+        self._nav_robot_id = robot_id
+        self._nav_api = api 
 
         # cmd_vel 퍼블리셔 (relative topic — 노드 네임스페이스 자동 적용)
         self._cmd_pub = node.create_publisher(Twist, 'cmd_vel', 10)
@@ -248,6 +250,11 @@ class NavCore:
         if self._current_goal_handle is not None:
             self._current_goal_handle.cancel_goal_async()
             self._current_goal_handle = None
+        if self._nav_api and self._nav_robot_id:
+            try:
+                self._nav_api.clear_route(self._nav_robot_id)
+            except Exception:
+                pass            
 
     # ── Zone 체크 (Nav2 → PID 전환) ──────────────────────────
 
@@ -367,6 +374,18 @@ class NavCore:
             f"[NavCore] 경로: {' → '.join(path)} → 최종목적지"
         )
 
+        # ★ NEW — 경로를 malle_service로 전송
+        if self._nav_api and self._nav_robot_id:
+            try:
+                route_coords = [
+                    {"wp_id": wp, "x": self._wp_points[wp]["x"], "y": self._wp_points[wp]["y"]}
+                    for wp in path
+                ]
+                route_coords.append({"wp_id": "_target", "x": target_x, "y": target_y})
+                self._nav_api.report_route(self._nav_robot_id, route_coords)
+            except Exception as e:
+                self._node.get_logger().warn(f"[NavCore] 경로 전송 실패: {e}")        
+
         # 4. 경유 웨이포인트 순차 이동 (마지막 wp는 최종 목적지로 대체)
         for wp_id in path[:-1]:
             if self._nav_abort:
@@ -399,6 +418,13 @@ class NavCore:
             )
         else:
             success = self._blocking_navigate(target_x, target_y, target_yaw)
+
+        # ★ NEW — 경로 완료 시 클리어
+        if self._nav_api and self._nav_robot_id:
+            try:
+                self._nav_api.clear_route(self._nav_robot_id)
+            except Exception:
+                pass
 
         if done_callback:
             done_callback(success)
