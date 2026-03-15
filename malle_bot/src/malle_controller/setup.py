@@ -26,6 +26,7 @@ setup(
         'console_scripts': [
             'mission_executor = malle_controller.mission_executor:main',
             'bridge_node       = malle_controller.bridge_node:main',
+            'cam_node          = malle_controller.cam_node:main',
 
             'mission_guide     = malle_controller.mission_guide:main',
             'mission_follow    = malle_controller.mission_follow:main',
@@ -34,6 +35,8 @@ setup(
             'tag_tracker       = malle_controller.tag_tracker:main',
             'lockbox_controller= malle_controller.lockbox_controller:main',
             'battery_monitor   = malle_controller.battery_monitor:main',
+            'topic_relay       = malle_controller.topic_relay:main',
+            'mission_parking11 = malle_controller.mission_parking11:main',
         ],
     },
 )
